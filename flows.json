@@ -2,6 +2,14 @@
     {
         "id": "7cbe116050851432",
         "type": "tab",
+        "label": "Tray Skeleton",
+        "disabled": true,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "1e07ee377310fa48",
+        "type": "tab",
         "label": "Flow 1",
         "disabled": false,
         "info": "",
@@ -101,5 +109,708 @@
                 "py": 0
             }
         }
+    },
+    {
+        "id": "5defafc1eace372e",
+        "type": "mqtt-broker",
+        "name": "box-broker",
+        "broker": "blinky-mqtt",
+        "port": "1883",
+        "clientid": "automation-01",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "a34e18170620e588",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Save tray config in Memory",
+        "func": "let tray = msg.payload;\nflow.set('tray', msg.payload);\nnode.warn(\"Received tray from database\");\ntray.watchdog.value = 0;\ntray.trayControl.value = 0;\nfor (let icube in tray)\n{\n    if (tray[icube].hasOwnProperty('enabled')) tray[icube].enabled = 0;\n}\n\nreturn [{topic:'publishTray',payload:true},{topic:'initTray',payload:true}];\n",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 920,
+        "y": 360,
+        "wires": [
+            [
+                "84233c4b075fa088"
+            ],
+            [
+                "1c5888f9c3815e74"
+            ]
+        ]
+    },
+    {
+        "id": "a33cc7fb0cd3648e",
+        "type": "inject",
+        "z": "7cbe116050851432",
+        "name": "initFlow",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "1",
+        "topic": "initFlow",
+        "payload": "",
+        "payloadType": "date",
+        "x": 180,
+        "y": 160,
+        "wires": [
+            [
+                "0211a5e2f47aeea0"
+            ]
+        ]
+    },
+    {
+        "id": "0211a5e2f47aeea0",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Init flow Variables",
+        "func": "var trayProps = {\n    box         :   'bl-fermi-01',\n    type        :   'machine-protection',\n    name        :   '01',\n};\nflow.set('trayProps',trayProps);\nflow.set('tray', null);\nflow.set('settingInProgress', true);\nreturn {topic: \"getTrayProps\", payload: true};  \n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 160,
+        "wires": [
+            [
+                "5377f495c83a7a6f",
+                "410156f65a9b70cb"
+            ]
+        ]
+    },
+    {
+        "id": "7c2432b95f4d2a68",
+        "type": "switch",
+        "z": "7cbe116050851432",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "setting",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "ping",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "config",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "echo",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 4,
+        "x": 690,
+        "y": 280,
+        "wires": [
+            [
+                "c71fce6a2eeec7a3"
+            ],
+            [
+                "cc8f67b0ef80fc63"
+            ],
+            [
+                "695c2018d6145046"
+            ],
+            [
+                "a34e18170620e588"
+            ]
+        ]
+    },
+    {
+        "id": "983b4df29435c3a9",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Filter MQTT",
+        "func": "return {topic:msg.topic.split('/')[5], payload:msg.payload};",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 280,
+        "wires": [
+            [
+                "7c2432b95f4d2a68"
+            ]
+        ]
+    },
+    {
+        "id": "5c76e32670100b45",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Publish tray",
+        "func": "if (!msg.payload) return null;\nvar tray = flow.get('tray');\nif (tray == null) return null;\nlet newMsg = null;\nlet newMsgTopic = flow.get('trayProps').box + '/tray/' + flow.get('trayProps').type + '/' + flow.get('trayProps').name + '/reading';\nswitch( tray.trayControl.value)\n{\n    case 0:\n        newMsg = {topic: newMsgTopic, payload: JSON.stringify(tray)};\n        break;\n    case -1:\n        tray.trayControl.value = 1;\n        newMsg = {topic: newMsgTopic, payload: JSON.stringify(tray)};\n        break;\n    default:\n        break;\n}\nreturn newMsg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1330,
+        "y": 280,
+        "wires": [
+            [
+                "f7a12a5b2153ebda"
+            ]
+        ]
+    },
+    {
+        "id": "695c2018d6145046",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Save config file",
+        "func": "let cubeAlarm = flow.get('tray')[msg.payload.cube].alarm;\nif (flow.get('tray')[msg.payload.cube].hasOwnProperty('enabled'))\n{\n    if (msg.payload.hasOwnProperty('enabled'))\n    {\n        flow.get('tray')[msg.payload.cube].enabled = msg.payload.enabled;\n    }\n}\ncubeAlarm.limits.lolo = msg.payload.limits.lolo;\ncubeAlarm.limits.low  = msg.payload.limits.low;\ncubeAlarm.limits.high = msg.payload.limits.high;\ncubeAlarm.limits.hihi = msg.payload.limits.hihi;\nreturn {topic:'newData', payload:true};\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 320,
+        "wires": [
+            [
+                "84233c4b075fa088"
+            ]
+        ]
+    },
+    {
+        "id": "c71fce6a2eeec7a3",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Create Setting",
+        "func": "let blinkyBusSettingMsg = null;\nlet normalSettingMsg = null;\nlet trayControlMessage = null;\nlet tray = flow.get('tray');\nif (tray == null) return [blinkyBusSettingMsg,normalSettingMsg,trayControlMessage];\nif (tray[msg.payload.cube].hasOwnProperty('enabled'))\n{\n    if (tray[msg.payload.cube].enabled == 0)\n    {\n        return [blinkyBusSettingMsg,normalSettingMsg, trayControlMessage];\n    }\n}\n\nif (msg.payload.cube != 'trayControl') tray[msg.payload.cube].value = msg.payload.value;\n\nswitch (msg.payload.cube) \n{\n    case 'alias':\n        blinkyBusSettingMsg = null;\n        flow.set('settingInProgress', false);\n        normalSettingMsg = { topic: 'newData', payload: true };\n       break;\n    case 'trayControl':\n         switch(msg.payload.value)\n        {\n            case 0:\n                tray.trayControl.value = 0;\n                for (let icube in tray)\n                {\n                    if (tray[icube].hasOwnProperty('enabled')) tray[icube].enabled = 1;\n                }\n                flow.set('settingInProgress', false);\n                break;\n            case 1:\n                tray.trayControl.value = -1;\n                for (let icube in tray)\n                {\n                    if (tray[icube].hasOwnProperty('enabled')) tray[icube].enabled = 0;\n                }\n                if (tray.trayControl.hasOwnProperty('enabled')) tray.trayControl.enabled = 1;\n                flow.set('settingInProgress', true);\n                break;\n            case 2:\n                if (tray.trayControl.value > 0)\n                {\n                    tray.trayControl.value = 2;\n                    flow.set('settingInProgress', true);\n                    let trayProps  = flow.get('trayProps');\n                    let box = trayProps.box;\n                    trayControlMessage =\n                    {\n                        topic: trayProps.box + '/tray/' + trayProps.type + '/' + trayProps.name + '/echo',\n                        payload: JSON.stringify({ topic: box + '/tray/' + trayProps.type + '/' + trayProps.name + '/setting/echo' })\n                    };\n                 }\n                break;\n            default:\n                tray.trayControl.value = 0;\n                flow.set('settingInProgress', false);\n                break;\n        }\n        normalSettingMsg = { topic: 'newData', payload: true };\n        blinkyBusSettingMsg = null;\n        break;\n    default:\n        break;\n}\nreturn [blinkyBusSettingMsg,normalSettingMsg,trayControlMessage];\n\n",
+        "outputs": 3,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 220,
+        "wires": [
+            [
+                "0c0752b494d2fe83"
+            ],
+            [
+                "84233c4b075fa088"
+            ],
+            [
+                "f7a12a5b2153ebda"
+            ]
+        ]
+    },
+    {
+        "id": "84814b5d7100ded0",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Request tray from Database",
+        "func": "let tray = flow.get('tray');\nif (tray != null) return [null,null];\nlet trayProps  = flow.get('trayProps');\nnode.warn(\"Asking for tray from database\");\nlet box = trayProps.box;\nvar newMsg =\n{\n    topic: trayProps.box + '/tray/' + trayProps.type + '/' + trayProps.name + '/echo',\n    payload: JSON.stringify({ topic: box + '/tray/' + trayProps.type + '/' + trayProps.name + '/setting/echo' })\n};\nreturn [{ topic: \"getTrayProps\", payload: true }, newMsg];  \n",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 900,
+        "y": 160,
+        "wires": [
+            [
+                "319b5f4fa4b9c863"
+            ],
+            [
+                "f7a12a5b2153ebda"
+            ]
+        ]
+    },
+    {
+        "id": "319b5f4fa4b9c863",
+        "type": "delay",
+        "z": "7cbe116050851432",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1140,
+        "y": 120,
+        "wires": [
+            [
+                "84814b5d7100ded0"
+            ]
+        ]
+    },
+    {
+        "id": "cc8f67b0ef80fc63",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "prep ping",
+        "func": "return {topic:'newData', payload:true};",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 860,
+        "y": 280,
+        "wires": [
+            [
+                "84233c4b075fa088"
+            ]
+        ]
+    },
+    {
+        "id": "410156f65a9b70cb",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "MQTT subscribe topic",
+        "func": "let subscribeTopic = flow.get('trayProps').box + \"/tray/\" + flow.get('trayProps').type +'/' + flow.get('trayProps').name + \"/setting/#\";\nif (Number(env.get(\"USEHUB\")) == 1) \n{\n    subscribeTopic = env.get(\"HUBBOX\") + \"/\" +env.get(\"HUBNAME\") + \"/\" + flow.get('trayProps').type +'/' + flow.get('trayProps').name + \"/setting/#\";\n}\nreturn {action:\"subscribe\",topic:subscribeTopic};",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 200,
+        "y": 280,
+        "wires": [
+            [
+                "733bf86fb23568be"
+            ]
+        ]
+    },
+    {
+        "id": "5377f495c83a7a6f",
+        "type": "delay",
+        "z": "7cbe116050851432",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "2",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 600,
+        "y": 160,
+        "wires": [
+            [
+                "84814b5d7100ded0"
+            ]
+        ]
+    },
+    {
+        "id": "69597493ab2a7f2c",
+        "type": "inject",
+        "z": "7cbe116050851432",
+        "name": "Archive clock",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "20",
+        "topic": "archiveClock",
+        "payload": "",
+        "payloadType": "date",
+        "x": 880,
+        "y": 80,
+        "wires": [
+            [
+                "7a2ba09675f33687"
+            ]
+        ]
+    },
+    {
+        "id": "7a2ba09675f33687",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Archive Pulse",
+        "func": "var tray = flow.get('tray');\nvar lastArchive = context.get('lastArchive');\nvar now = new Date().getTime();\nif ((now - lastArchive) <= tray.arcPeriod) return null;\ncontext.set('lastArchive', now);\nreturn {topic:'archivePulse', payload:true};",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\ncontext.set('lastArchive', new Date().getTime());",
+        "finalize": "",
+        "libs": [],
+        "x": 1060,
+        "y": 80,
+        "wires": [
+            [
+                "548139d24e399cb6"
+            ]
+        ]
+    },
+    {
+        "id": "548139d24e399cb6",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Publish tray",
+        "func": "if (!msg.payload) return null;\nvar tray = flow.get('tray');\nvar newMsg = \n{\n    topic: flow.get('trayProps').box + '/tray/' + flow.get('trayProps').type + '/' + flow.get('trayProps').name + '/archive',\n    payload: JSON.stringify(tray)\n};\nif( tray.trayControl.value > 0) newMsg = null;\nreturn  newMsg;  \n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1230,
+        "y": 80,
+        "wires": [
+            [
+                "f7a12a5b2153ebda"
+            ]
+        ]
+    },
+    {
+        "id": "733bf86fb23568be",
+        "type": "mqtt in",
+        "z": "7cbe116050851432",
+        "name": "box mqtt",
+        "topic": "",
+        "qos": "2",
+        "datatype": "json",
+        "broker": "5defafc1eace372e",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 1,
+        "x": 400,
+        "y": 280,
+        "wires": [
+            [
+                "983b4df29435c3a9"
+            ]
+        ]
+    },
+    {
+        "id": "f7a12a5b2153ebda",
+        "type": "mqtt out",
+        "z": "7cbe116050851432",
+        "name": "box mqtt",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "5defafc1eace372e",
+        "x": 1380,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "1c5888f9c3815e74",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "initTray out",
+        "mode": "link",
+        "links": [
+            "d42bedf924818982"
+        ],
+        "x": 1095,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "99c78bd4a7915cda",
+        "type": "link in",
+        "z": "7cbe116050851432",
+        "name": "init tray finished",
+        "links": [
+            "f75837cb27beec99"
+        ],
+        "x": 1205,
+        "y": 360,
+        "wires": [
+            [
+                "4245789571117f51"
+            ]
+        ]
+    },
+    {
+        "id": "a4fb56ba31d2424f",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Init Tray finished",
+        "func": "let tray = flow.get('tray');\nflow.set('settingInProgress', false);\nfor (let icube in tray)\n{\n    if (tray[icube].hasOwnProperty('enabled')) tray[icube].enabled = 1;\n}\nreturn {topic:'publishTray',payload:true};",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1460,
+        "y": 360,
+        "wires": [
+            [
+                "5c76e32670100b45"
+            ]
+        ]
+    },
+    {
+        "id": "4245789571117f51",
+        "type": "delay",
+        "z": "7cbe116050851432",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "2",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1300,
+        "y": 360,
+        "wires": [
+            [
+                "a4fb56ba31d2424f"
+            ]
+        ]
+    },
+    {
+        "id": "bf46890c17141a21",
+        "type": "link in",
+        "z": "7cbe116050851432",
+        "name": "publish Tray In",
+        "links": [
+            "84233c4b075fa088",
+            "c6b65715170e89f3"
+        ],
+        "x": 1175,
+        "y": 280,
+        "wires": [
+            [
+                "5c76e32670100b45"
+            ]
+        ]
+    },
+    {
+        "id": "84233c4b075fa088",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "utility publish",
+        "mode": "link",
+        "links": [
+            "bf46890c17141a21"
+        ],
+        "x": 1025,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "c6b65715170e89f3",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "Publish Readings Out",
+        "mode": "link",
+        "links": [
+            "bf46890c17141a21"
+        ],
+        "x": 585,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "0c0752b494d2fe83",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "blinkyBusSetting",
+        "mode": "link",
+        "links": [
+            "254a599f7403564a"
+        ],
+        "x": 1005,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "7941c8fbb11fd8f6",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Add Readings",
+        "func": "if (flow.get('settingInProgress')) return null;\nreturn {topic:'publishTray',payload:true};",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 440,
+        "y": 500,
+        "wires": [
+            [
+                "c6b65715170e89f3"
+            ]
+        ]
+    },
+    {
+        "id": "77659e643332d715",
+        "type": "inject",
+        "z": "7cbe116050851432",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 240,
+        "y": 500,
+        "wires": [
+            [
+                "7941c8fbb11fd8f6"
+            ]
+        ]
+    },
+    {
+        "id": "1d7585bd1a0ac583",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Init BlinkyBus",
+        "func": "\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 580,
+        "wires": [
+            [
+                "f75837cb27beec99"
+            ]
+        ]
+    },
+    {
+        "id": "d42bedf924818982",
+        "type": "link in",
+        "z": "7cbe116050851432",
+        "name": "init BlinkyBus In",
+        "links": [
+            "1c5888f9c3815e74"
+        ],
+        "x": 175,
+        "y": 580,
+        "wires": [
+            [
+                "1d7585bd1a0ac583"
+            ]
+        ]
+    },
+    {
+        "id": "f75837cb27beec99",
+        "type": "link out",
+        "z": "7cbe116050851432",
+        "name": "init Blinkybus Out",
+        "mode": "link",
+        "links": [
+            "99c78bd4a7915cda"
+        ],
+        "x": 455,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "254a599f7403564a",
+        "type": "link in",
+        "z": "7cbe116050851432",
+        "name": "link in 2",
+        "links": [
+            "0c0752b494d2fe83"
+        ],
+        "x": 175,
+        "y": 660,
+        "wires": [
+            [
+                "15f43d07a1ab37e3"
+            ]
+        ]
+    },
+    {
+        "id": "15f43d07a1ab37e3",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "set BlinkyBus",
+        "func": "\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 290,
+        "y": 660,
+        "wires": [
+            []
+        ]
     }
 ]
