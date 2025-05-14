@@ -21,7 +21,7 @@
         "z": "7cbe116050851432",
         "name": "DB Interface",
         "style": {
-            "fill": "#c8e7a7",
+            "fill": "#7f8faf",
             "label": true
         },
         "nodes": [
@@ -732,7 +732,7 @@
         "links": [
             "bf46890c17141a21"
         ],
-        "x": 585,
+        "x": 1005,
         "y": 500,
         "wires": []
     },
@@ -765,7 +765,7 @@
         "y": 500,
         "wires": [
             [
-                "c6b65715170e89f3"
+                "a64d31f1f50e0f29"
             ]
         ]
     },
@@ -877,6 +877,25 @@
         "y": 660,
         "wires": [
             []
+        ]
+    },
+    {
+        "id": "a64d31f1f50e0f29",
+        "type": "function",
+        "z": "7cbe116050851432",
+        "name": "Readings Alarm Scan",
+        "func": "var tray = flow.get('tray');\nvar alarmFlagReading = scalarAlarmScan(tray, 'reading');\nvar alarmFlagSetting = scalarAlarmScan(tray, 'setting');\nreturn msg;\n\nfunction getActionArray(tray, type, actionType)\n{\n    var actionArray = [];\n    var keys = Object.keys(tray);\n    for (var ii = 0; ii < keys.length; ++ii)\n    {\n        if (tray[keys[ii]].hasOwnProperty('type'))\n        {\n            if (tray[keys[ii]].type == type)\n            {\n                if (tray[keys[ii]].action == actionType)\n                {\n                    actionArray.push(tray[keys[ii]]);\n                }\n            }\n        }\n    }\n    return actionArray;\n}\nfunction scalarAlarmScan(tray, actionType)\n{\n    var alarmFlag = false;\n    var actionArray = getActionArray(tray, 'scalar', actionType);\n    if (actionArray.length > 0)\n    {\n        for (var ii = 0; ii < actionArray.length; ++ii)\n        {\n            let oldAlarmValue = actionArray[ii].alarm.value;\n            actionArray[ii].alarm.value = 0;\n            if (!isNaN(actionArray[ii].value))\n            {\n                if (actionArray[ii].value <= actionArray[ii].alarm.limits.low)  actionArray[ii].alarm.value = 1;\n                if (actionArray[ii].value <= actionArray[ii].alarm.limits.lolo) actionArray[ii].alarm.value = 3;\n                if (actionArray[ii].value >= actionArray[ii].alarm.limits.high) actionArray[ii].alarm.value = 2;\n                if (actionArray[ii].value >= actionArray[ii].alarm.limits.hihi) actionArray[ii].alarm.value = 4;\n                if (actionArray[ii].alarm.value != oldAlarmValue) alarmFlag = true;\n            }\n        }\n    }\n    return alarmFlag;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\ncontext.set('lastAlarm', -1);",
+        "finalize": "",
+        "libs": [],
+        "x": 860,
+        "y": 500,
+        "wires": [
+            [
+                "c6b65715170e89f3"
+            ]
         ]
     }
 ]
