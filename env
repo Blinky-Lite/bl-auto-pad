@@ -1,4 +1,11 @@
-NODEREDPORT=60427
+NODEREDPORT=60420
 HTMLSTATICDIR=html-static/
 NODE_RED_TITLE=bl-autopad
+BOX=bl-cryovac-02
+MQTTCLIENTID=automation01
+MQTTSERVERIP=172.17.0.1
+MQTTUSERNAME=bl-cryovac-02
+MQTTPASSWORD=xxx
+MQTTPORT=1883
+MONGODBIP=mongodb://admin:xxx@172.17.0.1:27017/blinky-lite?retryWrites=true&serverSelectionTimeoutMS=5000&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-256
 ENABLE_NODERED_EDITOR=1

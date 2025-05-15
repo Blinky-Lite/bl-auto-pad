@@ -1,1 +1,7 @@
-{}
+{
+    "5defafc1eace372e": {
+        "user": "$(MQTTUSERNAME)",
+        "password": "$(MQTTPASSWORD)"
+    },
+    "a8525ea29523e8c5": {}
+}

@@ -155,14 +155,15 @@
         "id": "5defafc1eace372e",
         "type": "mqtt-broker",
         "name": "box-broker",
-        "broker": "blinky-mqtt",
-        "port": "1883",
-        "clientid": "automation-01",
+        "broker": "$(MQTTSERVERIP)",
+        "port": "$(MQTTPORT)",
+        "clientid": "$(MQTTCLIENTID)",
         "autoConnect": true,
         "usetls": false,
         "protocolVersion": "4",
         "keepalive": "60",
         "cleansession": true,
+        "autoUnsubscribe": true,
         "birthTopic": "",
         "birthQos": "0",
         "birthPayload": "",
@@ -177,6 +178,14 @@
         "willMsg": {},
         "userProps": "",
         "sessionExpiry": ""
+    },
+    {
+        "id": "a8525ea29523e8c5",
+        "type": "mongodb3",
+        "uri": "$(MONGODBIP)",
+        "name": "blinky-lite",
+        "options": "",
+        "parallelism": "-1"
     },
     {
         "id": "a34e18170620e588",
@@ -896,6 +905,21 @@
             [
                 "c6b65715170e89f3"
             ]
+        ]
+    },
+    {
+        "id": "d4b7da6e3eb69b0d",
+        "type": "mongodb3 in",
+        "z": "7cbe116050851432",
+        "service": "_ext_",
+        "configNode": "a8525ea29523e8c5",
+        "name": "",
+        "collection": "",
+        "operation": "",
+        "x": 240,
+        "y": 760,
+        "wires": [
+            []
         ]
     }
 ]
